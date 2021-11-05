@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 
 namespace functions_example
@@ -34,6 +35,27 @@ namespace functions_example
         public static IEnumerable<decimal> join_seq(IEnumerable<decimal> a, IEnumerable<decimal> b)
         {
             return a.Concat(b);
+        }
+
+        [Description("Data source for the PostgreSQL database")]
+        public static IEnumerable<string[]> data_source_pg(string connection_string, string select)
+        {
+            using var conn = new Npgsql.NpgsqlConnection(connection_string);
+            conn.Open();
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = select;
+            var reader = cmd.ExecuteReader();
+            var header = reader.GetColumnSchema().Select(x => x.ColumnName).ToArray();
+            object[] values = new object[header.Length];
+
+            yield return header;
+
+            while (reader.Read())
+            {
+                reader.GetValues(values);
+                yield return values.Select(x => x is IFormattable f ? f.ToString(null, CultureInfo.InvariantCulture) : x?.ToString()).ToArray();
+            }
+
         }
     }
 }
