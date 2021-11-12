@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 
@@ -56,6 +57,18 @@ namespace functions_example
                 yield return values.Select(x => x is IFormattable f ? f.ToString(null, CultureInfo.InvariantCulture) : x?.ToString()).ToArray();
             }
 
+        }
+
+        [Description("Custom data source which executes a command before the acutal data source is created")]
+        public static IEnumerable<string[]> data_source_custom(Func<IEnumerable<string[]>> csv_source) // we use Func<> to execute the data_source_csv_file after the command line command is executed
+        {
+            Process.Start("cmd.exe", new string[] { "/c", "echo LIST_A_ID,VALUE_02 > text.csv" }).WaitForExit(); // start command line process to generate a CSV
+            Process.Start("cmd.exe", new string[] { "/c", $"echo 1,{DateTime.Now.Second} >> text.csv" }).WaitForExit();
+
+            return csv_source(); // now execute the actual CSV data source
+
+            // The following format formula could be used in a model with List A:
+            // formatbutton("test", update(import_values('Sheet 1', ext_data_source_custom(data_source_csv_file("text.csv", ",")))))
         }
     }
 }
